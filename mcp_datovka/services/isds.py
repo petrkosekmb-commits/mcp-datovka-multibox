@@ -209,9 +209,10 @@ def read_message(box: BoxConfig, message_id: str) -> dict:
 
         dm_return = resp_dict.get("dmReturnedMessage", {})
         envelope = dm_return.get("dmDm", {})
-        files_container = dm_return.get("dmFiles", {})
+        files_container = envelope.get("dmFiles") or dm_return.get("dmFiles") or {}
 
-        result = _serialize_message_dict(envelope) if envelope else {"id": message_id}
+        result = _serialize_message_dict({**envelope, **{k: dm_return[k] for k in
+            ("dmDeliveryTime", "dmAcceptanceTime", "dmMessageStatus", "dmAttachmentSize") if k in dm_return}})
 
         attachments = []
         if files_container:
@@ -233,8 +234,8 @@ def read_message(box: BoxConfig, message_id: str) -> dict:
                     content_b64 = None
                     size = 0
                 attachments.append({
-                    "filename": _safe(f.get("_dmFileDescr")),
-                    "mime_type": _safe(f.get("_dmMimeType")) or "application/octet-stream",
+                    "filename": _safe(f.get("dmFileDescr") or f.get("_dmFileDescr")),
+                    "mime_type": _safe(f.get("dmMimeType") or f.get("_dmMimeType")) or "application/octet-stream",
                     "size_bytes": size,
                     "content_base64": content_b64,
                 })
