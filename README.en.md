@@ -47,6 +47,9 @@ Test is the default environment; production requires an explicit choice.
 
 Only ISDS username/password authentication is currently implemented. Mobile Key,
 bank identity, SMS and certificates are not supported by this version.
+Web login success does not by itself prove that third-party SOAP access is
+enabled; ISDS may require enabling external applications or using its generated
+communication credentials in account settings.
 
 After installing the runtime, install the Codex plugin:
 
