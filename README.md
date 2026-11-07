@@ -1,5 +1,25 @@
 # Datovka Multibox
 
+[Česky](README.cs.md) | [English](README.en.md)
+
+## K čemu je projekt dobrý
+
+Datovka Multibox propojuje AI asistenta s několika českými datovými schránkami.
+Pomáhá vyřizovat osobní i firemní korespondenci: vybrat správný účet, načíst
+zprávy, najít příjemce a připravit odpověď s přílohami. Odesílání vyžaduje
+kontrolu konkrétního návrhu v místním okně. Přístup máte pouze přes vlastní
+nastavené účty a jejich oprávnění.
+
+Veřejná část slouží ke sdílení programu. Soukromá část je místní instalace
+s vašimi účty, oprávněními a návrhy. Obě používají stejné jádro, takže opravy
+není nutné udržovat dvakrát. Účty a hesla nejsou součástí veřejného repozitáře.
+
+## Podpora vývoje
+
+Moje úpravy a údržbu této odvozené verze můžete dobrovolně podpořit na
+[Buy Me a Coffee](https://buymeacoffee.com/kojakcio). Příspěvek není podmínkou
+používání. Původní projekt vytvořilo Sensio.cz; odkaz podporuje tuto odvozenou verzi.
+
 Místní MCP konektor pro více českých datových schránek. Odvozeno z projektu
 [Sensio-cz/mcp-datovka](https://github.com/Sensio-cz/mcp-datovka), viz [UPSTREAM.md](UPSTREAM.md).
 
