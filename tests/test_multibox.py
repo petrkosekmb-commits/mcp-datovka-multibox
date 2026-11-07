@@ -159,7 +159,7 @@ def test_isds_error_is_not_empty_inbox(monkeypatch, operation):
 
 
 def test_sender_credentials_verified(monkeypatch):
-    service = SimpleNamespace(_binding_options={}, GetOwnerInfoFromLogin=lambda: {
+    service = SimpleNamespace(_binding_options={}, GetOwnerInfoFromLogin=lambda **kw: {
         "dbStatus": {"dbStatusCode": "0000"}, "dbOwnerInfo": {"dbID": "wrongid"}})
     monkeypatch.setattr(isds, "_create_client", lambda *a: SimpleNamespace(service=service))
     with pytest.raises(RuntimeError, match="neodpovida"):

@@ -15,6 +15,12 @@ from ..config import BoxConfig, get_soap_urls
 
 logger = logging.getLogger(__name__)
 
+
+def _check_http_status(response, *args, **kwargs):
+    if response.status_code == 401:
+        raise PermissionError("ISDS odmitlo prihlaseni (HTTP 401). Overte prihlasovaci udaje a povoleny zpusob prihlaseni.")
+    response.raise_for_status()
+
 # WSDL PATRI DOVNITR BALIKU. Drive lezelo v korenu repozitare a cesta vedla
 # o uroven vys nez balik - to funguje jen v checkoutu. Po instalaci (pip, wheel)
 # je balik v site-packages a nad nim zadne `wsdl/` neni, takze kazde volani
@@ -46,6 +52,7 @@ def _create_client(wsdl_name: str, box: BoxConfig) -> Client:
     session = Session()
     session.auth = HTTPBasicAuth(box.username, box.password)
     session.verify = True
+    session.hooks["response"].append(_check_http_status)
     transport = Transport(session=session, timeout=20, operation_timeout=60)
     settings = Settings(strict=False, xml_huge_tree=False, forbid_dtd=True, forbid_entities=True)
 
@@ -405,7 +412,7 @@ def verify_sender(box: BoxConfig) -> None:
     """Check that credentials actually belong to the configured sender box."""
     client = _create_client("db_access.wsdl", box)
     client.service._binding_options["address"] = get_soap_urls(box)["access"]
-    response = serialize_object(client.service.GetOwnerInfoFromLogin(), dict)
+    response = serialize_object(client.service.GetOwnerInfoFromLogin(dbDummy=""), dict)
     status = response.get("dbStatus") or {}
     owner = response.get("dbOwnerInfo") or {}
     if str(status.get("dbStatusCode", "")) != "0000" or owner.get("dbID") != box.box_id:
