@@ -1,209 +1,121 @@
-# mcp-datovka
+# Datovka Multibox
 
-MCP server for Czech ISDS (Informacni system datovych schranek) - the official Czech government digital mailbox system.
+Místní MCP konektor pro více českých datových schránek. Odvozeno z projektu
+[Sensio-cz/mcp-datovka](https://github.com/Sensio-cz/mcp-datovka), viz [UPSTREAM.md](UPSTREAM.md).
 
-Enables AI assistants (Claude, Cursor, etc.) to read, send, and manage data messages across multiple data boxes through the [Model Context Protocol](https://modelcontextprotocol.io/).
+Verze 0.2.0 je základ připravený pro doplnění vlastních účtů. Offline testy
+ověřují ochrany a sestavení SOAP požadavků. Funkčnost s opravdovými schránkami
+zatím nebyla ověřena. Před ostrým provozem proveďte zkoušku v testovacím ISDS.
 
-## Features
+## Veřejná a soukromá varianta
 
-- **Multi-box support** - manage up to 99 data boxes from a single server
-- **Full message lifecycle** - list, read, send, and download messages with attachments
-- **Data box search** - find recipients by name, ICO, or box ID
-- **Production + sandbox** - supports both mojedatovaschranka.cz and czebox.cz test environment
-- **Stdio transport** - runs locally, no network exposure of credentials
+Veřejná část je tento repozitář: zdrojový kód, plugin, testy a vzor konfigurace.
+Soukromá varianta používá stejné jádro s místním nastavením. Nevzniká druhá větev
+s hesly, kterou by bylo možné omylem sloučit do veřejné verze.
 
-## Tools
+Na Windows jsou účty a návrhy standardně v `%LOCALAPPDATA%\DatovkaMultibox`.
+Na ostatních systémech v `~/.local/share/DatovkaMultibox`. Umístění lze změnit
+absolutní cestou v `DATOVKA_PRIVATE_DIR`; musí být mimo repozitář.
+Hesla ukládá knihovna keyring do systémového úložiště (na Windows Credential
+Manager). Hesla nejsou v JSON, argumentech nástrojů ani v konfiguraci MCP.
+Soubor `config.example.json` obsahuje pouze smyšlený příklad.
 
-| Tool | Description |
-|------|-------------|
-| `datovka_list_boxes` | List all configured data boxes |
-| `datovka_list_received` | List received messages (with date filter) |
-| `datovka_list_sent` | List sent messages (with date filter) |
-| `datovka_read_message` | Read message detail with attachments |
-| `datovka_download_attachment` | Download a specific attachment (base64) |
-| `datovka_send_message` | Send a data message with attachments |
-| `datovka_search_box` | Search for a data box by name/ICO/ID |
-| `datovka_mark_read` | Mark a message as read |
+## Instalace na Windows
 
-## Requirements
+Potřebujete Python 3.11 nebo novější. V kořeni projektu spusťte:
 
-- Python 3.11+
-- ISDS credentials (username + password) for each data box
-  - Obtain from [mojedatovaschranka.cz](https://www.mojedatovaschranka.cz) > Nastaveni > Moznosti prihlaseni
-
-## Installation
-
-Install from source - the package is **not published on PyPI yet**, so
-`pip install mcp-datovka` does not work:
-
-```bash
-git clone https://github.com/Sensio-cz/mcp-datovka.git
-cd mcp-datovka
-pip install .        # pro vyvoj: pip install -e .
+```powershell
+./scripts/install.ps1
+./scripts/nastavit-ucet.ps1
 ```
 
-## Configuration
+První příkaz vytvoří oddělené `.venv` a prázdnou soukromou konfiguraci.
+Druhý interaktivně přidá účet; lze ho opakovat pro další schránky. Heslo se
+zadává skrytě v místním terminálu. Testovací prostředí je výchozí, produkční
+se volí výslovně. Příjem i odesílání se povolují zvlášť. Přidání účtu se
+nepřipojuje k ISDS a není ověřením správnosti přihlašovacích údajů.
 
-### 1. Create `.env` file
+Současná verze podporuje jméno a heslo ISDS. Bankovní identita, Mobilní klíč,
+SMS a certifikát v této verzi implementované nejsou. Neměňte si kvůli tomu
+bez rozmyslu nastavení zabezpečení účtu.
 
-Copy `.env.example` to `.env` and fill in your credentials:
+## Připojení k AI klientovi
 
-```env
-# Test environment (czebox.cz) - set to "true" for sandbox
-DATOVKA_TEST_ENV=false
+Balíček obsahuje kompatibilní manifest `.codex-plugin/plugin.json`, `.mcp.json`
+a dovednost v `skills/`. Po instalaci závislostí lze kořen projektu přidat jako
+místní plugin. Instalace uloží cestu k běhovému prostředí do soukromého
+`runtime.json`, aby fungovala i kopie pluginu v mezipaměti klienta.
+Samotné zveřejnění na GitHubu jej nenainstaluje do Codexu ani
+nezveřejní v katalogu OpenAI.
 
-# Box 1
-DATOVKA_BOX_1_ALIAS=my-company
-DATOVKA_BOX_1_ID=abc1234
-DATOVKA_BOX_1_USERNAME=your_username
-DATOVKA_BOX_1_PASSWORD=your_password
+Pro běžného MCP klienta použijte absolutní cestu k
+`.venv/Scripts/python.exe` (Windows), argumenty `-m mcp_datovka` a stdio.
+Soukromá data nejsou součástí pluginu. Na Linuxu vytvořte `.venv` pomocí
+`python3 -m venv .venv`, instalujte `.venv/bin/python -m pip install .` a
+zajistěte funkční systémové úložiště hesel a Tk pro kontrolní okno.
 
-# Box 2
-DATOVKA_BOX_2_ALIAS=personal
-DATOVKA_BOX_2_ID=def5678
-DATOVKA_BOX_2_USERNAME=username2
-DATOVKA_BOX_2_PASSWORD=password2
+## Práce se schránkami
+
+- `datovka_list_boxes`: místní seznam účtů bez sítě.
+- `datovka_list_received`, `datovka_list_sent`: seznamy z výslovně zvolené schránky.
+- `datovka_read_message`: stažení přijaté zprávy včetně příloh v base64.
+- `datovka_search_box`: hledání příjemce přes zvolený účet.
+- `datovka_prepare_message`: místní neměnný návrh, bez odeslání.
+- `datovka_get_draft`: celý text, odesílatel, příjemce, přílohy a stav.
+- `datovka_send_draft`: jediný pokus o odeslání schváleného návrhu.
+
+U příloh lze do JSON pole `files` zadat buď `file_path` s absolutní cestou,
+nebo `filename`, `mime_type` a `content_base64`. Při přípravě se obsah uloží
+do návrhu; pozdější změna původního souboru odesílaný návrh nezmění.
+Text je příloha `text-zpravy.txt`, i když zpráva obsahuje další soubory.
+Místní limit je 20 MiB a 50 přidaných příloh, nikoli tvrzení o limitu ISDS.
+
+## Kontrola a odeslání
+
+1. Připravte návrh a zkontrolujte schránku, prostředí, ID příjemce a obsah.
+2. Otevřete místní kontrolní okno:
+
+   ```powershell
+   ./.venv/Scripts/python.exe -m mcp_datovka.setup review ID_NAVRHU
+   ```
+
+3. Uživatel v okně schválí konkrétní návrh. Schválení samo nic neodesílá.
+4. AI může zavolat `datovka_send_draft` pouze s ID schváleného návrhu.
+
+Návrh čeká na schválení nejvýše 24 hodin; po schválení platí 15 minut.
+Odesílatel je svázán s ID schránky, přihlašovacím jménem a prostředím.
+Před odesláním se přes ISDS kontroluje, zda přihlášení odpovídá ID schránky.
+Jakákoli změna obsahu vyžaduje nový návrh a nové schválení.
+
+Stav `sent` znamená, že ISDS vrátilo ID zprávy; není to potvrzení jejího
+doručení adresátovi. `sending` po pádu procesu a `uncertain` po chybě vyžadují
+ruční kontrolu odeslaných zpráv. Automatický druhý pokus je blokován.
+Záměrně tu není nástroj MCP pro schválení. Jde o ochranu na hranici MCP,
+nikoli proti programu se stejnými plnými právy k místním souborům a klávesnici.
+
+## Doručení a soukromí
+
+Načtení příchozích zpráv může způsobit doručení a běh lhůt. Vypnuté odesílání
+tomu samo nebrání. Příjem se proto povoluje zvlášť. Není tu automatický
+plánovač synchronizace. Viz [příručka Datovky](https://www.datovka.cz/datovka-docs/datovka/manual).
+
+Návrhy a jejich přílohy jsou v místní SQLite databázi bez aplikačního šifrování;
+chraňte uživatelský profil a disk. Hesla jsou v systémovém úložišti zvlášť.
+Obsah vrácený MCP klientovi může být odeslán jeho poskytovateli AI podle
+nastavení klienta. Místní server sám neznamená, že obsah zůstává pouze v PC.
+Archivace ZFO, doručenek a zálohování na NAS zatím nejsou implementované.
+
+## Vývoj a ověření
+
+```powershell
+./.venv/Scripts/python.exe -m pip install pytest build
+./.venv/Scripts/python.exe -m pytest -q
+./.venv/Scripts/python.exe -m build --wheel
 ```
 
-Each box needs 4 environment variables with a sequential number (1-99):
-- `DATOVKA_BOX_N_ALIAS` - friendly name used in tool calls
-- `DATOVKA_BOX_N_ID` - ISDS box ID (7 alphanumeric characters)
-- `DATOVKA_BOX_N_USERNAME` - ISDS login username
-- `DATOVKA_BOX_N_PASSWORD` - ISDS login password
+Testy používají smyšlené účty a blokují síťové požadavky. Ověřují výběr účtu,
+povolování příjmu, neměnnost návrhu, expiraci, souběh, blokování opakovaného
+odeslání, chyby ISDS a skládání příloh. CI běží na Windows a Linuxu.
 
-### 2. Add to your MCP client
-
-#### Claude Code / Claude Desktop
-
-Add to `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "datovka": {
-      "command": "mcp-datovka",
-      "env": {
-        "DATOVKA_BOX_1_ALIAS": "my-company",
-        "DATOVKA_BOX_1_ID": "abc1234",
-        "DATOVKA_BOX_1_USERNAME": "your_username",
-        "DATOVKA_BOX_1_PASSWORD": "your_password"
-      }
-    }
-  }
-}
-```
-
-Or using a `.env` file. **Careful:** it is looked up from the working directory
-of the MCP client process, not from the checkout - after `pip install .` those
-are two different places. Give the client a working directory that holds the
-`.env`, or pass the credentials in `env` as above.
-
-```json
-{
-  "mcpServers": {
-    "datovka": {
-      "command": "mcp-datovka"
-    }
-  }
-}
-```
-
-#### Cursor
-
-Add to `.cursor/mcp.json` with the same format.
-
-## Usage examples
-
-### List received messages
-
-```
-"Show me received messages in my-company data box"
-```
-
-The AI assistant calls `datovka_list_received(box_alias="my-company")` and displays the results.
-
-### Send a document
-
-```
-"Send invoice.pdf to data box abc1234 from my-company box with subject 'Invoice 2026/03'"
-```
-
-The assistant calls `datovka_send_message` with the file content as base64.
-
-### Search for a recipient
-
-```
-"Find the data box for ICO 04004621"
-```
-
-The assistant calls `datovka_search_box(query="04004621")`.
-
-### Cross-channel workflow (with Gmail MCP)
-
-```
-"Take the attachment from the email by Novak and send it via data box to the tax office"
-```
-
-The assistant:
-1. Downloads the attachment from Gmail (`gmail_get_attachment_content`)
-2. Sends it via ISDS (`datovka_send_message`)
-
-## ISDS API details
-
-This server communicates with ISDS via SOAP/HTTPS using bundled WSDL definitions from [dslib](https://github.com/yarda/dslib) (CZ.NIC).
-
-| Operation | WSDL | SOAP endpoint |
-|-----------|------|---------------|
-| List messages | `dm_info.wsdl` | `/DS/dx` |
-| Send/download messages | `dm_operations.wsdl` | `/DS/dz` |
-| Search data boxes | `db_search.wsdl` | `/DS/df` |
-
-**Authentication:** HTTP Basic Auth over HTTPS. Each box authenticates independently.
-
-**Environments:**
-
-| Environment | Base URL |
-|-------------|----------|
-| Production | `https://ws1.mojedatovaschranka.cz` |
-| Test (sandbox) | `https://ws1.czebox.cz` |
-
-## Testing with sandbox
-
-1. Log in to [mojedatovaschranka.cz](https://www.mojedatovaschranka.cz)
-2. Go to Nastaveni > Pro vyvojare
-3. Create test data boxes (up to 4)
-4. Set `DATOVKA_TEST_ENV=true` in `.env`
-5. Use sandbox credentials
-
-## Security
-
-### Two-step send confirmation (HITL)
-
-The `datovka_send_message` tool implements a **mandatory two-step confirmation flow**:
-
-1. **First call** (`confirmed=false`, default) - returns a preview of the message (sender, recipient, subject, attachments) without sending anything
-2. **Second call** (`confirmed=true`) - actually sends the message, but only after the AI has shown the preview to the user and received explicit approval
-
-This ensures that no data message is ever sent without human approval, regardless of the AI assistant's behavior.
-
-### Other security measures
-
-- Credentials are stored in `.env` (gitignored) or passed via environment variables
-- Communication with ISDS is always over HTTPS/TLS
-- The server runs locally via stdio - no network ports are opened
-- No message content is logged - only metadata (subject, sender, timestamp)
-- Each box authenticates independently - compromising one box does not affect others
-
-## Legal notice
-
-Data messages (datove zpravy) sent through ISDS have the **legal effect of delivery by registered mail** under Czech law (Act No. 300/2008 Coll.). Use this tool responsibly and always verify the recipient before sending.
-
-## License
-
-MIT
-
-## Credits
-
-- WSDL definitions from [dslib](https://github.com/yarda/dslib) by CZ.NIC (LGPL)
-- Built with [zeep](https://github.com/mvantellingen/python-zeep) SOAP client
-- [Model Context Protocol](https://modelcontextprotocol.io/) by Anthropic
+Licence původního kódu: MIT, viz LICENSE. Původ převzatých definic WSDL/XSD
+a odlišné licence závislostí jsou uvedeny v UPSTREAM.md.

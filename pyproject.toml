@@ -1,6 +1,6 @@
 [project]
-name = "mcp-datovka"
-version = "0.1.0"
+name = "mcp-datovka-multibox"
+version = "0.2.0"
 description = "MCP server for Czech ISDS (datove schranky) - read, send, and manage data messages across multiple data boxes"
 requires-python = ">=3.11"
 # Licence se uvadi JEN takhle (PEP 639). Klasifikator
@@ -29,18 +29,19 @@ dependencies = [
     # nenastartuje - zmereno 23. 9. 2026 na cistem stroji.
     "mcp[cli]>=1.0.0,<2",
     "zeep>=4.2.0",
-    "python-dotenv>=1.0.0",
+    "keyring>=25,<26",
     "requests>=2.28.0",
 ]
 
 [project.urls]
-Homepage = "https://github.com/Sensio-cz/mcp-datovka"
-Repository = "https://github.com/Sensio-cz/mcp-datovka"
-Issues = "https://github.com/Sensio-cz/mcp-datovka/issues"
-Changelog = "https://github.com/Sensio-cz/mcp-datovka/blob/master/CHANGELOG.md"
+Homepage = "https://github.com/petrkosekmb-commits/mcp-datovka-multibox"
+Repository = "https://github.com/petrkosekmb-commits/mcp-datovka-multibox"
+Issues = "https://github.com/petrkosekmb-commits/mcp-datovka-multibox/issues"
+Changelog = "https://github.com/petrkosekmb-commits/mcp-datovka-multibox/blob/main/CHANGELOG.md"
 
 [project.scripts]
 mcp-datovka = "mcp_datovka.__main__:main"
+datovka-config = "mcp_datovka.setup:main"
 
 [build-system]
 # SETUPTOOLS 77 JE MINIMUM, ne opatrnost: `license = "MIT"` jako SPDX vyraz

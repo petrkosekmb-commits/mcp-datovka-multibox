@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "datovka_multibox": {
+      "command": "python",
+      "args": ["${PLUGIN_ROOT}/scripts/run_server.py"]
+    }
+  }
+}

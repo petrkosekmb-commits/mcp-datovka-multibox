@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "boxes": [
+    {
+      "alias": "osobni-test",
+      "box_id": "abc1234",
+      "username": "DOPLNTE_V_MISTNIM_PRUVODCI",
+      "environment": "test",
+      "allow_receive": false,
+      "allow_send": false
+    }
+  ]
+}

@@ -46,27 +46,27 @@ def _create_client(wsdl_name: str, box: BoxConfig) -> Client:
     session = Session()
     session.auth = HTTPBasicAuth(box.username, box.password)
     session.verify = True
-    transport = Transport(session=session)
-    settings = Settings(strict=False, xml_huge_tree=True)
+    transport = Transport(session=session, timeout=20, operation_timeout=60)
+    settings = Settings(strict=False, xml_huge_tree=False, forbid_dtd=True, forbid_entities=True)
 
     return Client(str(wsdl_path), transport=transport, settings=settings, plugins=[_RemoveNilPlugin()])
 
 
 def _get_operations_client(box: BoxConfig) -> Client:
     client = _create_client("dm_operations.wsdl", box)
-    client.service._binding_options["address"] = get_soap_urls()["operations"]
+    client.service._binding_options["address"] = get_soap_urls(box)["operations"]
     return client
 
 
 def _get_info_client(box: BoxConfig) -> Client:
     client = _create_client("dm_info.wsdl", box)
-    client.service._binding_options["address"] = get_soap_urls()["info"]
+    client.service._binding_options["address"] = get_soap_urls(box)["info"]
     return client
 
 
 def _get_search_client(box: BoxConfig) -> Client:
     client = _create_client("db_search.wsdl", box)
-    client.service._binding_options["address"] = get_soap_urls()["search"]
+    client.service._binding_options["address"] = get_soap_urls(box)["search"]
     return client
 
 
@@ -122,8 +122,7 @@ def list_received(box: BoxConfig, from_date: str | None = None, max_results: int
         status_code = str(status.get("dmStatusCode", ""))
         if status_code != "0000":
             status_msg = str(status.get("dmStatusMessage", ""))
-            logger.error(f"ISDS error: {status_code} - {status_msg}")
-            return []
+            raise RuntimeError(f"ISDS chyba: {status_code}")
 
         # Response uses dmRecords._value_1 or dmRecord
         records_container = resp_dict.get("dmRecords") or resp_dict.get("dmRecord")
@@ -150,7 +149,7 @@ def list_received(box: BoxConfig, from_date: str | None = None, max_results: int
                 result.append(_serialize_message_dict(r))
         return result
     except Exception as e:
-        logger.error(f"list_received failed for {box.alias}: {e}")
+        logger.error("ISDS operace selhala (%s)", type(e).__name__)
         raise
 
 
@@ -173,18 +172,18 @@ def list_sent(box: BoxConfig, from_date: str | None = None, max_results: int = 5
         status_code = str(status.get("dmStatusCode", ""))
         if status_code != "0000":
             status_msg = str(status.get("dmStatusMessage", ""))
-            logger.error(f"ISDS error: {status_code} - {status_msg}")
-            return []
+            raise RuntimeError(f"ISDS chyba: {status_code}")
 
-        records = resp_dict.get("dmRecord", [])
-        if not records:
-            return []
+        container = resp_dict.get("dmRecords") or resp_dict.get("dmRecord") or []
+        if isinstance(container, dict):
+            records = container.get("_value_1", container.get("dmRecord", [container]))
+        else:
+            records = container
         if isinstance(records, dict):
             records = [records]
-
-        return [_serialize_message_dict(msg) for msg in records]
+        return [_serialize_message_dict(msg.get("dmRecord", msg)) for msg in records]
     except Exception as e:
-        logger.error(f"list_sent failed for {box.alias}: {e}")
+        logger.error("ISDS operace selhala (%s)", type(e).__name__)
         raise
 
 
@@ -222,7 +221,7 @@ def read_message(box: BoxConfig, message_id: str) -> dict:
                     size = len(content)
                 elif content:
                     content_b64 = str(content)
-                    size = len(base64.b64decode(content))
+                    size = len(base64.b64decode(content, validate=True))
                 else:
                     content_b64 = None
                     size = 0
@@ -236,7 +235,7 @@ def read_message(box: BoxConfig, message_id: str) -> dict:
         result["attachments"] = attachments
         return result
     except Exception as e:
-        logger.error(f"read_message failed for {box.alias}/{message_id}: {e}")
+        logger.error("ISDS operace selhala (%s)", type(e).__name__)
         raise
 
 
@@ -260,6 +259,7 @@ def send_message(
 
     files: list of {filename, mime_type, content_base64}
     """
+    verify_sender(box)
     client = _get_operations_client(box)
     try:
         NS = "{http://isds.czechpoint.cz/v20}"
@@ -277,7 +277,7 @@ def send_message(
             for i, f in enumerate(files):
                 content = f["content_base64"]
                 if isinstance(content, str):
-                    content = base64.b64decode(content)
+                    content = base64.b64decode(content, validate=True)
                 dm_files.append({
                     "dmEncodedContent": content,
                     "dmMimeType": f.get("mime_type", "application/octet-stream"),
@@ -286,12 +286,12 @@ def send_message(
                 })
 
         # If body text provided, add as text attachment
-        if body and not files:
+        if body:
             dm_files.append({
                 "dmEncodedContent": body.encode("utf-8"),
                 "dmMimeType": "text/plain",
-                "dmFileMetaType": "main",
-                "dmFileDescr": "zprava.txt",
+                "dmFileMetaType": "enclosure" if files else "main",
+                "dmFileDescr": "text-zpravy.txt",
             })
 
         response = client.service.CreateMessage(
@@ -311,7 +311,7 @@ def send_message(
             "status_message": status_msg,
         }
     except Exception as e:
-        logger.error(f"send_message failed for {box.alias} -> {to_box_id}: {e}")
+        logger.error("ISDS operace selhala (%s)", type(e).__name__)
         raise
 
 
@@ -345,8 +345,7 @@ def search_box(box: BoxConfig, query: str, box_type: str | None = None) -> list[
         status_code = str(status.get("dbStatusCode", ""))
         if status_code != "0000":
             status_msg = str(status.get("dbStatusMessage", ""))
-            logger.warning(f"Search returned: {status_code} - {status_msg}")
-            return []
+            raise RuntimeError(f"ISDS chyba hledani: {status_code}")
 
         results = resp_dict.get("dbResults", {})
         if not results:
@@ -384,7 +383,7 @@ def search_box(box: BoxConfig, query: str, box_type: str | None = None) -> list[
             for o in owner_list
         ]
     except Exception as e:
-        logger.error(f"search_box failed: {e}")
+        logger.error("ISDS operace selhala (%s)", type(e).__name__)
         raise
 
 
@@ -398,5 +397,16 @@ def mark_read(box: BoxConfig, message_id: str) -> bool:
         status_code = str(status.get("dmStatusCode", ""))
         return status_code == "0000"
     except Exception as e:
-        logger.error(f"mark_read failed for {box.alias}/{message_id}: {e}")
+        logger.error("ISDS operace selhala (%s)", type(e).__name__)
         raise
+
+
+def verify_sender(box: BoxConfig) -> None:
+    """Check that credentials actually belong to the configured sender box."""
+    client = _create_client("db_access.wsdl", box)
+    client.service._binding_options["address"] = get_soap_urls(box)["access"]
+    response = serialize_object(client.service.GetOwnerInfoFromLogin(), dict)
+    status = response.get("dbStatus") or {}
+    owner = response.get("dbOwnerInfo") or {}
+    if str(status.get("dbStatusCode", "")) != "0000" or owner.get("dbID") != box.box_id:
+        raise RuntimeError("Prihlaseny ucet neodpovida ID odesilajici schranky nebo overeni selhalo.")

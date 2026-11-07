@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 Multibox
+
+- Soukroma konfigurace mimo repozitar, hesla v systemovem ulozisti.
+- Vyber uctu a testovaciho/produkcniho prostredi pro kazdou schranku.
+- Nemenny navrh, mistni schvaleni a nejvyse jeden pokus o odeslani.
+- Oprava soubehu textu a priloh; chyby ISDS nejsou prazdny seznam.
+- Offline testy, instalacni skripty a manifest mistniho pluginu.
+- Zive spojeni s ISDS zatim neovereno.
+
 ## Unreleased
 
 ### Fixed

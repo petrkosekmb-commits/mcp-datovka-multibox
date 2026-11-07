@@ -7,3 +7,13 @@ build/
 .venv/
 .claude/
 *.log
+.env.*
+!.env.example
+private/
+config.json
+*.sqlite3*
+*.db
+*.zfo
+exports/
+.pytest_cache/
+*.zip

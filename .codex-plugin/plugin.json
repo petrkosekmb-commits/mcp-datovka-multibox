@@ -1,0 +1,12 @@
+{
+  "name": "datovka-multibox",
+  "version": "0.2.0",
+  "description": "Datove schranky s vice ucty, soukromym nastavenim a schvalovanymi navrhy.",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "requires_local_executor": true,
+  "interface": {
+    "displayName": "Datovka Multibox",
+    "shortDescription": "Vice datovych schranek se soukromym nastavenim"
+  }
+}
