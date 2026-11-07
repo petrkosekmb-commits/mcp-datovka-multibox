@@ -48,6 +48,16 @@ místní plugin. Instalace uloží cestu k běhovému prostředí do soukromého
 Samotné zveřejnění na GitHubu jej nenainstaluje do Codexu ani
 nezveřejní v katalogu OpenAI.
 
+V Codex CLI lze po instalaci závislostí zaregistrovat repozitář a plugin:
+
+```powershell
+codex plugin marketplace add petrkosekmb-commits/mcp-datovka-multibox
+codex plugin add datovka-multibox@datovka-multibox-community
+```
+
+Po instalaci otevřete nový chat. Při aktualizaci kódu zopakujte také
+`scripts/install.ps1`, aby se aktualizovalo místní běhové prostředí.
+
 Pro běžného MCP klienta použijte absolutní cestu k
 `.venv/Scripts/python.exe` (Windows), argumenty `-m mcp_datovka` a stdio.
 Soukromá data nejsou součástí pluginu. Na Linuxu vytvořte `.venv` pomocí

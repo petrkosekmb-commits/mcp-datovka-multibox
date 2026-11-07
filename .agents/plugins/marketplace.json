@@ -1,0 +1,12 @@
+{
+  "name": "datovka-multibox-community",
+  "interface": {"displayName": "Datovka Multibox"},
+  "plugins": [
+    {
+      "name": "datovka-multibox",
+      "source": {"source": "local", "path": "./"},
+      "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+      "category": "Productivity"
+    }
+  ]
+}
