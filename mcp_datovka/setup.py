@@ -5,6 +5,7 @@ import json
 import os
 import tempfile
 import sys
+import re
 from pathlib import Path
 from . import config, drafts
 
@@ -25,7 +26,14 @@ def save_config(data: dict) -> None:
 def add_account():
     import keyring
     data = config.load_config()
-    alias = input("Nazev uctu (napr. osobni nebo firma): ").strip()
+    while True:
+        entered = input("Nazev uctu (napr. osobni, firma nebo FO): ").strip()
+        alias = entered.lower()
+        if re.fullmatch(r"[a-z0-9][a-z0-9-]{0,39}", alias):
+            if alias != entered:
+                print(f"Nazev uctu bude ulozen jako: {alias}")
+            break
+        print("Pouzijte 1 az 40 pismen bez diakritiky, cislic nebo pomlcek; nezacinejte pomlckou.")
     if any(b["alias"] == alias for b in data["boxes"]):
         raise ValueError("Ucet uz existuje; pouzijte novy nazev nebo upravte mistni konfiguraci.")
     box = {"alias": alias, "box_id": input("ID schranky: ").strip(),
